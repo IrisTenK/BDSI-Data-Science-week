@@ -109,6 +109,12 @@ train$garagekwali <- ifelse(train$garagekwali==0,train$garagekwali,train$garagek
 table(train$garagekwali)
 hist(train$garagekwali)
 
+train$LotFrontage[is.na(train$LotFrontage)] <- 0
+
+# de juiste kolommen eruit filteren
+train4 <- train[,c(1,2,3,4,5,6,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,28,29,30,35,37,38,39,
+                   40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,62,63,66,67,68,69,70,71,72,76,77,78,79,80,81,82,83,84,85)]
+
 ```
 
 ```{r}
@@ -118,6 +124,45 @@ data_split <- initial_split(train4, prop = 4/5, strata = 'SalePrice', breaks = 1
 train_data <- training(data_split)
 val_data <- testing(data_split)
 ```
+
+# Call: Dit is de combi die nu uit stepAIC(train_data) komt (ook Condition2, maar daar krijg ik een foutmelding op)
+# lm(formula = SalePrice ~ LotArea + Street + LandContour + LandSlope + 
+#   Neighborhood + Condition1 + BldgType + HouseStyle + 
+#   OverallQual + OverallCond + YearBuilt + YearRemodAdd + RoofMatl + 
+#   ExterQual + Foundation + BsmtFinSF1 + BsmtFinSF2 + BsmtUnfSF + 
+#   X1stFlrSF + X2ndFlrSF + BedroomAbvGr + KitchenAbvGr + KitchenQual + 
+#   TotRmsAbvGrd + Functional + Fireplaces + GarageCars + GarageArea + 
+#   WoodDeckSF + ScreenPorch + PoolArea + MoSold + SaleType + 
+#   SaleCondition, data = train_data)
+
+# we kiezen een simpel model (vanwege tijdgebrek), en de features die uit de StepAIC kwamen selecteren we nu
+fit_train <- glm(SalePrice ~ LotArea + Street + LandContour + LandSlope + 
+                     Neighborhood + Condition1 + BldgType + HouseStyle +
+                     OverallQual + OverallCond + YearBuilt + YearRemodAdd + RoofMatl +
+                     ExterQual + Foundation + BsmtFinSF1 + BsmtFinSF2 + BsmtUnfSF +
+                     X1stFlrSF + X2ndFlrSF + BedroomAbvGr + KitchenAbvGr + KitchenQual +
+                     TotRmsAbvGrd + Functional + Fireplaces + GarageCars + GarageArea +
+                     WoodDeckSF + ScreenPorch + PoolArea + MoSold + SaleType +
+                     SaleCondition, data = train4)
+
+testje <- predict(fit_train, newdata = val_data)
+  
+val_data$Salepredict <- testje
+val_data_test <- val_data[,c("Id","SalePrice","Salepredict")]
+val_data_test$difference <- val_data_test$SalePrice-val_data_test$Salepredict
+quantile(val_data_test$difference)
+x <- mean(val_data_test$difference)
+y <- mean(val_data_test$SalePrice)
+# onderstaande onze gemiddelde foutmarge, die ik best okee vind eigenlijk
+x/y
+
+# voor inleverfile dus onderstaande code nodig voor voorspelling verkoopprijs
+submission <- predict(fit_train, newdata = test)
+test$Saleprice_prediction <- submission
+submission_file <- test[,c("Id","Saleprice_prediction")]
+
+write.table(submission_file, file = "submission_team5.csv", sep = ",", col.names = T, row.names = F)
+
 
 ```{r}
 # Further feature engineering using recipe from the tidyverse metapackage: dummify the variables and normalize and logtransform the numerical variables
